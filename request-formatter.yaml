@@ -1,0 +1,20 @@
+#code: Transaction code
+codeFile: src/pact/syntax.pact
+data: {
+  jeromebacatan-keyset: ["1853c995c7d69283f3eecadfb32e3f69da7f615bcffbe342d2c0fd9e5949d4f6"]
+}
+#dataFile: JSON transaction data file
+# networkId: 1
+keyPairs: [
+  {
+    public: "1853c995c7d69283f3eecadfb32e3f69da7f615bcffbe342d2c0fd9e5949d4f6",
+    secret: "e2248d0c932bfc13a32afcbef86fddd86e265efa6d343f95fbce48a2bc7228ed"
+  }
+]
+  # caps: [
+  #   optional managed capabilities
+  #   ]
+
+# nonce: optional request nonce, will use current time if not provided
+# from: entity name for addressing private messages
+# to: entity names for addressing private messages

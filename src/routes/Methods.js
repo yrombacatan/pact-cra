@@ -1,47 +1,57 @@
 import React, { useEffect, useState } from 'react';
 import Pact from 'pact-lang-api'
 
+// kadena config
+import kadenaAPI from '../kadena.config'
+
+// sub-components
+import KeysetsForm from '../components/for-method/KeysetsForm';
+import CapabilitiesForm from '../components/for-method/CapabilitiesForm';
+
+// utility
+import { checkWallet, formatKeyset } from '../utils'
+
 global.Buffer = global.Buffer || require("buffer").Buffer;
 
 const Methods = () => {
-  const [isLocal, setIsLocal] = useState(true)
+  const [local, setLocal] = useState(true)
   const [pactCode, setPactCode] = useState('')
+  const [sender, setSender] = useState('')
+  const [result, setResult] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(false)
+  const [requestKey, setRequestKey] = useState('')
+
   const [keysetList, setKeysetList] = useState([{
     name: '',
     address: '',
     pred: ''
   }])
-  const [result, setResult] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState(false)
-  const [requestKey, setRequestKey] = useState('')
-  
-  const handlePactCode = (e) => {
+
+  const [capabilityList, setCapabilityList] = useState([{
+    name: '',
+    args: ['']
+  }])
+
+  const handlePact = (e) => {
     setPactCode(e.target.value)
   }
 
-  const handleInputChange = (e, i) => {
-    const { name, value } = e.target
-    const list = [...keysetList]
-    list[i][name.split('-')[0]] = value  // remove dynamic name index for radio button
-    setKeysetList(list)
+  const handleSender = (e) => {
+    setSender(e.target.value)
   }
 
-  const handleAdd = (e) => {
-    e.preventDefault()
-    const newList = [...keysetList, {names: '', address: '', pred: ''}]
-    setKeysetList(newList)
-  }
-
-  const handleRemove = (i) => {
-    const list = [...keysetList]
-    list.splice(i, 1)
-    setKeysetList(list)
-  }
-
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
 
+    if(local) {
+      handleLocal()
+    } else {
+      handleSigning()
+    }
+  }
+
+  const handleLocal = async () => {
     const formatKeyset = keysetList.reduce((current, next) => {
       let name = next.name
       let address = next.address
@@ -56,43 +66,88 @@ const Methods = () => {
     }, {})
 
     const cmd = {
-      keyPairs: {
-        publicKey: "1853c995c7d69283f3eecadfb32e3f69da7f615bcffbe342d2c0fd9e5949d4f6",
-        secretKey: "e2248d0c932bfc13a32afcbef86fddd86e265efa6d343f95fbce48a2bc7228ed",
-      },
       pactCode: pactCode,
-      envData: formatKeyset
+      envData: formatKeyset,
+      meta: Pact.lang.mkMeta(
+        kadenaAPI.meta.sender,
+        kadenaAPI.meta.chainId,
+        kadenaAPI.meta.gasPrice,
+        kadenaAPI.meta.gasLimit,
+        kadenaAPI.meta.creationTime(),
+        kadenaAPI.meta.ttl
+      )
+      
     }
 
     console.log(cmd)
 
     try {
+      setResult('')
       setIsLoading(true)
 
-      const host = "http://localhost:9001"
-
-      if(isLocal) {
-        const result = await Pact.fetch.local(cmd, host)
-        if(result.result.status === 'failure') {
+      const result = await Pact.fetch.local(cmd, kadenaAPI.meta.host)
+      if(
+        result.hasOwnProperty('result') &&
+        result.result.status === 'failure') {
           throw (result)
-        }
-
-        const resMessage =  `${result.result.status}:  ${result.result.data}`
-        setResult({message: resMessage, raw: result})
-        setIsLoading(false)
-        setError(false)
-      } else {
-        const result = await Pact.fetch.send(cmd, host)
-        
-        setRequestKey(result.requestKeys[0])
-        setIsLoading(false)
-        setError(false)
-        setResult({message: result.requestKeys, raw: result})
       }
+
+      setResult(result)
+      setIsLoading(false)
+      setError(false)
+     
+    } catch (error) {
+      setError(error)
+      setIsLoading(false)
+      setResult('')
+    }
+
+  }
+
+  const handleSigning = async () => {
+    // connect wallet
+    const { status, data } = await checkWallet()
+    if(status === 'error') {
+      setResult(`${data.message? data.message + ', make sure wallet is ready' : data}`)
+      return
+    }
+
+    // format accountAddress
+    // we use the first address from the collection
+    // remove prefix k
+    const accountAddress = data[0].at(0) === 'k' ? data[0].slice(2) : data[0]
+
+    // //format keyset to match needed requirement
+    const keysets = formatKeyset(keysetList)
+    const caps = capabilityList.map(cap => Pact.lang.mkCap('Some Role here', 'Some description', cap.name, cap.args))
+    const caps2 =  Pact.lang.mkCap('Some Role here', 'Some description', 'free.basic-payment-gas-station.GAS_PAYER', ['hi', {int: 2}, 1.0])
+
+    const cmd = {
+      "pactCode": pactCode,
+      "caps": caps2,
+      "envData": keysets, 
+      "sender": sender,
+      "chainId": kadenaAPI.meta.chainId,
+      "gasLimit": kadenaAPI.meta.gasLimit,
+      "gasPrice": kadenaAPI.meta.gasPrice,
+      "signingPubKey": accountAddress, // account with no prefix k here
+      "networkId": kadenaAPI.meta.networkId,
+      "nonce": kadenaAPI.meta.nonce,
+    }
+
+    console.log(cmd)
+
+    try {
+      const signedReq = await Pact.wallet.sign(cmd)
+      console.log(signedReq)
+
+      const tx = await Pact.wallet.sendSigned(signedReq, kadenaAPI.meta.host)
+      console.log(tx)
+
+      setRequestKey(tx.requestKeys[0])
   
     } catch (error) {
-      const errorMessage = `${error.result.error.type}: ${error.result.error.message}`
-      setError({message: errorMessage, raw: error})
+      setError(error)
       setIsLoading(false)
       setResult('')
     }
@@ -105,13 +160,14 @@ const Methods = () => {
       
       try {
         if(! requestKey) return
+        setResult('')
         setIsLoading(true)
         
         const cmd = {
           listen: requestKey
         }
-        const host = "http://localhost:9001"
-        const result = await Pact.fetch.listen(cmd, host)
+        //const host = "http://localhost:9001"
+        const result = await Pact.fetch.listen(cmd, kadenaAPI.meta.host)
         console.log(result)
 
         if(result.result.status === 'failure') {
@@ -121,18 +177,15 @@ const Methods = () => {
         if(! ignore) {
           setIsLoading(false)
           setError(false)
-          const resMessage =  `${result.result.status}:  ${result.result.data}`
-          setResult({message: resMessage, raw: result})
+          setResult(result)
         }
         
   
       } catch (error) {
         if(! ignore) {
-          const errorMessage = `${error.result.error.type}: ${error.result.error.message}`
-          setError({message: errorMessage, raw: error})
+          setError(error)
           setIsLoading(false)
           setResult('')
-          console.log(error)
         }
       }
     }
@@ -146,52 +199,34 @@ const Methods = () => {
   return (
       <main className='md:w-4/5 mx-auto p-4 md:p-6'>
           <section className="w-full mb-5">
+
                 <h1 className='text-lg font-medium'>Methods</h1>
-                <p className='text-sm text-slate-400 mt-5 mb-3'>Command</p>
+                
                 <form className='flex flex-wrap gap-3' onSubmit={handleSubmit}>
                   <div className='flex-auto'>
-                      <input type="text" placeholder='Enter Pact' name='pactCode' value={pactCode} onChange={handlePactCode}
+                      <label className='block text-md font-semibold text-slate-600 mt-5 mb-2'>Command</label>
+                      <input type="text" placeholder='Enter Pact' name='pactCode' value={pactCode} onChange={handlePact}
                         className="w-full border p-2 rounded mb-2 focus:outline-blue-400"/>
-                      <div>
-                        {keysetList.map((keyset, i) => {
-                          return(
-                          <div className='flex flex-wrap gap-2 mb-2' key={i}>
-                            <input type="text" placeholder='Keyset Name' name='name' value={keyset.name} onChange={e => handleInputChange(e, i)}
-                            className="flex-auto p-2 rounded focus:outline-blue-400"/>
-                            <input type="text" placeholder='Keysets Address' name='address' value={keyset.address} onChange={e => handleInputChange(e, i)}
-                            className="flex-auto basis-1/2 border p-2 rounded focus:outline-blue-400"/>
-                            <div className='flex-auto flex items-center gap-5'>
-                              <div className='flex items-center'>
-                                <input type='radio' name={`pred-${i}`} id='keys-any' value='keys-any' onChange={e => handleInputChange(e, i)}/>
-                                <label htmlFor='keys-any'>keys-any</label>
-                              </div>
-                              <div className='flex items-center'>
-                                <input type='radio' name={`pred-${i}`} id='keys-all' value='keys-all' onChange={e => handleInputChange(e, i)} />
-                                <label htmlFor='keys-all'>keys-all</label>
-                              </div>
-                              <div className='flex items-center'>
-                                <input type='radio' name={`pred-${i}`} id='keys-two' value='keys-two' onChange={e => handleInputChange(e, i)} />
-                                <label htmlFor='keys-two'>keys-two</label>
-                              </div>
-                              <div className='flex items-center'>
-                                <button className='underline text-red-500' onClick={() => handleRemove(i)}>Remove</button>
-                              </div>
-                            </div>
-                          </div>
-                        )})}
-          
-                      </div>
-                      <div>
-                        <button className='text-indigo-500 mt-3' onClick={handleAdd}>Add keyset</button>
-                      </div>
+                      
+                      <label className='block text-md font-semibold text-slate-600 mt-5 mb-2'>Keysets</label>
+                      <KeysetsForm keysetList={keysetList} setKeysetList={setKeysetList}/>
+
+                      <label className='block text-md font-semibold text-slate-600 mt-5 mb-2'>Capabilities</label>
+                      <CapabilitiesForm capabilityList={capabilityList} setCapabilityList={setCapabilityList} />
+
+                      <label className='block text-md font-semibold text-slate-600 mt-5 mb-2'>Sender (Gas Payer)</label>
+                      <input type="text" placeholder='Enter Sender' name='sender' value={sender} onChange={handleSender}
+                        className="w-full border p-2 rounded mb-2 focus:outline-blue-400"/>
                   </div>
+
                   <div className='flex-none'>
+                      <label className='block text-md font-semibold text-slate-600 mt-5 mb-2'>Action</label>
                       <input type='submit' value="Local" 
                         className='px-5 py-2 rounded text-black bg-gray-300  transition hover:bg-gray-600 hover:text-gray-100 cursor-pointer mr-3' 
-                        onClick={() => setIsLocal(true)}/>
+                        onClick={() => setLocal(true)}/>
                       <input type='submit' value="Send" 
                         className='px-5 py-2 rounded text-white bg-indigo-500 hover:bg-indigo-600 cursor-pointer' 
-                        onClick={() => setIsLocal(false)} />
+                        onClick={() => setLocal(false)} />
                   </div>
                 </form>
           </section>
@@ -200,12 +235,8 @@ const Methods = () => {
             <p className='text-sm text-slate-400 mt-5 mb-3'>Result</p>
             <div className='bg-gray-100 w-full min-h-fit rounded shadow-sm p-2 overflow-auto'>
               {isLoading && <p>Loading...</p>}
-
-              {error && <p>{error.message}</p>}
-              {error && <pre> <code> {JSON.stringify(error.raw, null, 4)} </code></pre>}
-
-              {result && <p>{result.message}</p>}
-              {result && <pre> <code> {JSON.stringify(result.raw, null, 4)} </code></pre>}
+              {error && <pre> <code> {JSON.stringify(error.message?? error, null, 4)} </code></pre>}
+              {result && <pre> <code> {JSON.stringify(result, null, 4)} </code></pre>}
             </div>
           </section>
       </main>

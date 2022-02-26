@@ -1,3 +1,5 @@
+// some dummy record for testing
+
 let invoicesList = [
     {
         invoiceNo: 1,

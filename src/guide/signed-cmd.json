@@ -1,0 +1,10 @@
+
+{   
+    "cmd": "{\"networkId\":\"testnet04\",\"payload\":{\"exec\":{\"data\":{},\"code\":\"(free.basic-payment.use-let)\"}},\"signers\":[{\"clist\":[{\"name\":\"free.basic-payment-gas-station.GAS_PAYER\",\"args\":[\"hi\",{\"int\":1},1]}],\"pubKey\":\"9fa7295ffe6cb6151a91682992c7652191f94c071260313f7b60657f75a9d8d9\"}],\"meta\":{\"creationTime\":1645495613,\"ttl\":900,\"gasLimit\":30000,\"chainId\":\"1\",\"gasPrice\":1e-8,\"sender\":\"bp-free-gas\"},\"nonce\":\"\\\"2022-02-22T02:07:53.367Z\\\"\"}",
+    "hash": "6cd2l0YqwzUOfvIL9fUWHIJqAiNAq6w3fJvl9ugEgv0",
+    "sigs": [
+        {
+            "sig": "2f292269991ece68d5292e4c34495b3942744082f847937bf6b7dd5630bd012813a7d5560ee79ab73a5e4eeb07cfedac001ab61485bd898ee7401f0427990a0a"
+        }
+    ]
+}

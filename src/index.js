@@ -8,6 +8,7 @@ import App from "./App";
 import Users from "./routes/Users";
 import Methods from "./routes/Methods";
 import Keypair from "./routes/Keypair";
+import Contract from "./routes/Contract";
 
 const rootElement = document.getElementById("root");
 ReactDOM.render(
@@ -17,6 +18,7 @@ ReactDOM.render(
         <Route path="/users" element={<Users />} />
         <Route path="/methods" element={<Methods />} />
         <Route path="/keypair" element={<Keypair />} />
+        <Route path="/contract" element={<Contract />} />
       </Route>
     </Routes>
   </BrowserRouter>,

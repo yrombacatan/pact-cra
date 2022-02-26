@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 
+import ConnectButton from '../components/ConnectButton';
+
 /* This example requires Tailwind CSS v2.0+ */
 import { Popover } from '@headlessui/react'
-import { MenuIcon } from '@heroicons/react/outline'
 
 const Nav = () => {
   return (
@@ -33,7 +34,7 @@ const NavUI = () => {
             </a>
           </div>
 
-          <Popover.Group as="nav" className="hidden md:flex space-x-10">
+          <Popover.Group as="nav" className="hidden md:flex md:items-center space-x-10">
             <NavLink to="/users" className="text-base font-medium text-gray-500 hover:text-gray-900">
               Users
             </NavLink>
@@ -43,6 +44,10 @@ const NavUI = () => {
             <NavLink to="/keypair" className="text-base font-medium text-gray-500 hover:text-gray-900">
               Generate Keypairs
             </NavLink>
+            <NavLink to="/contract" className="text-base font-medium text-gray-500 hover:text-gray-900">
+              Smart Contract
+            </NavLink>
+            <ConnectButton />
           </Popover.Group>
         </div>
       </div>

@@ -1,7 +1,5 @@
 import React from 'react'
 
-import { inputTypeChecker } from '../../utils'
-
 const CapabilitiesForm = ({ capabilityList, setCapabilityList }) => {
 
   const handleInputChange = (e, i) => {
@@ -14,11 +12,6 @@ const CapabilitiesForm = ({ capabilityList, setCapabilityList }) => {
   const handleInputChangeArgs = (e, i, j) => {
     const { value } = e.target
     const list = [...capabilityList]
-    let convertedValue = inputTypeChecker(value)
-
-    console.log('convert start')
-    console.log(convertedValue)
-
     list[i]['args'][j] = value  // remove dynamic name index for radio button
     setCapabilityList(list)
   }
@@ -62,8 +55,8 @@ const CapabilitiesForm = ({ capabilityList, setCapabilityList }) => {
             <div className='flex flex-wrap gap-5 items-center'>
 
               {capability.args.map((arg, j) => (
-                  <input key={(j+100)} type="text" placeholder='Args'
-                      className="flex-auto w-80 p-2 rounded border focus:outline-blue-400" value={arg} onChange={e => handleInputChangeArgs(e, i, j)}/>
+                  <input key={(j+100)} type="text" placeholder={`Args ${j+1}`}
+                      className="flex-auto w-80 p-2 rounded border focus:outline-blue-400" value={arg} onChange={e => handleInputChangeArgs(e, i, j)} />
               ))}
 
             </div>

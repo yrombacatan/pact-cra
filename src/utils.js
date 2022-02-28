@@ -59,21 +59,35 @@ const checkWallet = async () => {
     }
 }
 
-const inputTypeChecker = (val) => {
-    if(typeof val === "string") {
-        console.log('its a string')
-        return val.toString()
-    }
+const convertCapabilityArgument = (args) => {
+    // enable to accept dynamic data type from the args input (capability)
+    // convert value depending on the prefix char
 
-    if(typeof val === "number") {
-        console.log('it is a number')
-        return Number(val)
-    }
+    const newArgs = args.map(value => {
+         // check if input is object
+        if(value.at(0) === '{' && value.at(-1) === '}') return JSON.parse(value)
 
-    if(typeof val === "object") {
-        console.log('it is an object')
-        return JSON.parse(val)
-    }
+        // check if value is array
+        if(value.at(0) === '[' && value.at(-1) === ']') return JSON.parse(value)
+
+        // check if value is number
+        if(Number(value)) return Number(value)
+        
+        // check if boolean
+        if(value == 'false') return false
+        if(value == 'true') return true
+
+        // default string
+        return value
+    })
+    
+   return newArgs
 }
 
-export { QueryNavLink, formatKeyset, connectWallet, checkWallet, inputTypeChecker }
+export { 
+    QueryNavLink, 
+    formatKeyset, 
+    connectWallet, 
+    checkWallet, 
+    convertCapabilityArgument 
+}

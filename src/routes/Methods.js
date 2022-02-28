@@ -9,7 +9,7 @@ import KeysetsForm from '../components/for-method/KeysetsForm';
 import CapabilitiesForm from '../components/for-method/CapabilitiesForm';
 
 // utility
-import { checkWallet, formatKeyset } from '../utils'
+import { checkWallet, formatKeyset, convertCapabilityArgument } from '../utils'
 
 global.Buffer = global.Buffer || require("buffer").Buffer;
 
@@ -108,6 +108,7 @@ const Methods = () => {
     // connect wallet
     const { status, data } = await checkWallet()
     if(status === 'error') {
+      console.log('no wallet')
       setResult(`${data.message? data.message + ', make sure wallet is ready' : data}`)
       return
     }
@@ -117,15 +118,20 @@ const Methods = () => {
     // remove prefix k
     const accountAddress = data[0].at(0) === 'k' ? data[0].slice(2) : data[0]
 
-    // //format keyset to match needed requirement
+    //format keyset to match needed requirement
     const keysets = formatKeyset(keysetList)
-    const caps = capabilityList.map(cap => Pact.lang.mkCap('Some Role here', 'Some description', cap.name, cap.args))
-    const caps2 =  Pact.lang.mkCap('Some Role here', 'Some description', 'free.basic-payment-gas-station.GAS_PAYER', ['hi', {int: 2}, 1.0])
+
+    // make capability
+    const capability = capabilityList.map(cap => Pact.lang.mkCap(
+        'Some Role here', 
+        'Some description', 
+        cap.name, 
+        convertCapabilityArgument(cap.args)))
 
     const cmd = {
-      "pactCode": pactCode,
-      "caps": caps2,
-      "envData": keysets, 
+      "pactCode": "(coin.transfer 'k:9fa729ffe6cb6151a91682992c7652191f94c071260313f7b60657f75a9d8d9 'Admin 5.0)",
+      "caps": capability,
+      //"envData": keysets, 
       "sender": sender,
       "chainId": kadenaAPI.meta.chainId,
       "gasLimit": kadenaAPI.meta.gasLimit,
@@ -134,11 +140,47 @@ const Methods = () => {
       "networkId": kadenaAPI.meta.networkId,
       "nonce": kadenaAPI.meta.nonce,
     }
+    
+    const cap1 = Pact.lang.mkCap("Title", "description", "free.basic-payment-gas-station.GAS_PAYER", ["hi", {int: 1}, 1.0]);
+    const cap2 = Pact.lang.mkCap("Titles", "descriptions", "coin.TRANSFER", ["k:9fa7295ffe6cb6151a91682992c7652191f94c071260313f7b60657f75a9d8d9", "Admin", 5.0])
 
-    console.log(cmd)
+    const cmd2 = {
+      //"pactCode": `(free.basic-payment.test-transfer "k:9fa729ffe6cb6151a91682992c7652191f94c071260313f7b60657f75a9d8d9" "Admin" 5.0)`,
+      "pactCode": `(free.basic-payment.welcomeMessage "Hope")`,
+      "caps": [
+          {
+              "role": "Coin Transfer",
+              "description": "Capability to transfer designated amount of coin from sender to receiver",
+              "cap": {
+                "name": "coin.TRANSFER",
+                "args": ["9fa7295ffe6cb6151a91682992c7652191f94c071260313f7b60657f75a9d8d9", "Admin", 5]
+              }
+          },
+          {
+            "role": "Coin Transfer",
+            "description": "Capability to transfer designated amount of coin from sender to receiver",
+            "cap": {
+              "name": "free.basic-payment-gas-station.GAS_PAYER",
+              "args": ["hi", {int: 1}, 1.0]
+            }
+        },
+      ],
+      "envData": {}, 
+      "sender": "bp-free-gas",
+      "chainId": kadenaAPI.meta.chainId,
+      "gasLimit": kadenaAPI.meta.gasLimit,
+      "gasPrice": kadenaAPI.meta.gasPrice,
+      "signingPubKey": "9fa7295ffe6cb6151a91682992c7652191f94c071260313f7b60657f75a9d8d9", // account with no prefix k here
+      "networkId": kadenaAPI.meta.networkId,
+      "nonce": kadenaAPI.meta.nonce,
+    }
+
+    console.log(cmd2)
 
     try {
-      const signedReq = await Pact.wallet.sign(cmd)
+      setResult('') // clear result
+      const signedReq = await Pact.wallet.sign(cmd2)
+      console.log('here')
       console.log(signedReq)
 
       const tx = await Pact.wallet.sendSigned(signedReq, kadenaAPI.meta.host)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 
 // utility
-import { checkWallet } from '../utils';
+import { connectWallet } from '../utils';
 
 import MessageDialogue from './MessageDialogue';
 
@@ -10,11 +10,16 @@ const ConnectButton = () => {
     const [messageData, setMessageData] = useState('')
 
     const handleConnect = async () => {
-        const { status, data } = await checkWallet()
+        try {
+            const result = await connectWallet()
 
-        if(status === 'error') {
+            if(result.status === 'success') {
+                localStorage.setItem('accountAddress', JSON.stringify(result.data))
+            }
+
+        } catch (error) {
             setIsOpenMessageDialogue(true)
-            setMessageData(`${data.message? data.message + ', make sure wallet is ready' : data}`)
+            setMessageData(`${ error.message + ', make sure wallet is ready' }`)
 
             // close dialogue after 3s
             setTimeout(() => {

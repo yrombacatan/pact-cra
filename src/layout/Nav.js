@@ -35,9 +35,6 @@ const NavUI = () => {
           </div>
 
           <Popover.Group as="nav" className="hidden md:flex md:items-center space-x-10">
-            <NavLink to="/users" className="text-base font-medium text-gray-500 hover:text-gray-900">
-              Users
-            </NavLink>
             <NavLink to="/methods" className="text-base font-medium text-gray-500 hover:text-gray-900">
               Methods
             </NavLink>

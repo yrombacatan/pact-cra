@@ -59,35 +59,35 @@ const checkWallet = async () => {
     }
 }
 
-const convertCapabilityArgument = (args) => {
+const formatCapabilityArgument = (args) => {
     // enable to accept dynamic data type from the args input (capability)
     // convert value depending on the prefix char
 
-    const newArgs = args.map(value => {
-         // check if input is object
-        if(value.at(0) === '{' && value.at(-1) === '}') return JSON.parse(value)
+    const newArgs = args.map((value) => {
+        // check if value is object
+        if (value.at(0) === "{" && value.at(-1) === "}") return JSON.parse(value);
 
         // check if value is array
-        if(value.at(0) === '[' && value.at(-1) === ']') return JSON.parse(value)
+        if (value.at(0) === "[" && value.at(-1) === "]") return JSON.parse(value);
 
         // check if value is number
-        if(Number(value)) return Number(value)
-        
+        if (Number(value)) return Number(value);
+
         // check if boolean
-        if(value == 'false') return false
-        if(value == 'true') return true
+        if (value == "false") return false;
+        if (value == "true") return true;
 
         // default string
-        return value
-    })
-    
-   return newArgs
-}
+        return value;
+    });
 
-export { 
-    QueryNavLink, 
-    formatKeyset, 
-    connectWallet, 
-    checkWallet, 
-    convertCapabilityArgument 
-}
+    return newArgs;
+};
+
+export {
+  QueryNavLink,
+  formatKeyset,
+  connectWallet,
+  checkWallet,
+  formatCapabilityArgument,
+};
